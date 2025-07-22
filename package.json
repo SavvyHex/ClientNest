@@ -1,0 +1,25 @@
+{
+  "name": "clientnest",
+  "version": "1.0.0",
+  "description": "Lightweight client portal for freelancers",
+  "main": "index.js",
+  "scripts": {
+    "client": "npm start --prefix client",
+    "server": "npm run dev --prefix server",
+    "dev": "concurrently \"npm run client\" \"npm run server\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SavvyHex/ClientNest.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SavvyHex/ClientNest/issues"
+  },
+  "homepage": "https://github.com/SavvyHex/ClientNest#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.0"
+  }
+}
