@@ -29,3 +29,4 @@ Thumbs.db
 # Misc
 .env.local
 .env.*.local
+data/
