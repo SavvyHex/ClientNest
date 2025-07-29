@@ -7,10 +7,13 @@ function Register() {
   const register = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:5000/api/auth/register', form);
-      alert('Registered! Please log in.');
+      const res = await axios.post('http://localhost:5000/api/auth/register', form);
+
+      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('user', JSON.stringify(res.data.user));
+      alert('Registered successfully!');
     } catch (err) {
-      alert(err.response.data.error);
+      alert(err.response?.data?.message || 'Registration failed');
     }
   };
 
