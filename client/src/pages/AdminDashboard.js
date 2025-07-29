@@ -63,31 +63,6 @@ function AdminDashboard() {
     setDeleteQueue((prev) => [...prev, userId]);
   };
 
-  const handleSave = async (userId) => {
-    const token = localStorage.getItem('token');
-    const updates = editStates[userId];
-    if (!updates) return;
-    try {
-      await axios.put(
-        `http://localhost:5000/api/admin/users/${userId}`,
-        updates,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setUsers((prev) =>
-        prev.map((u) =>
-          u._id === userId ? { ...u, ...updates } : u
-        )
-      );
-      setEditStates((prev) => {
-        const newState = { ...prev };
-        delete newState[userId];
-        return newState;
-      });
-    } catch (err) {
-      alert('Failed to update user.');
-    }
-  };
-
   const handleConfirmChanges = async () => {
     const token = localStorage.getItem('token');
     // Apply edits

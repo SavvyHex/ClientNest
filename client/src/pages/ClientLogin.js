@@ -11,18 +11,20 @@ function ClientLogin() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('Form:', form); // Debug
     try {
       const res = await axios.post('http://localhost:5000/api/auth/login', form);
+      console.log('Response:', res.data); // Debug
       const { token, user } = res.data;
 
-      if (user.role !== 'user') {
+      if (user.role !== 'client') {
         alert('Only clients can log in here.');
         return;
       }
 
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
-      navigate('/client-dashboard');
+      navigate('/client');
     } catch (err) {
       console.error(err);
       alert('Login failed.');
