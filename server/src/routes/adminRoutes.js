@@ -5,8 +5,8 @@ import { protect, adminOnly } from "../middleware/authMiddleware.js";
 const router = express.Router();
 
 // GET all users (admin only)
-router.get("/users", protect, adminOnly, async (req, res) => {
-  const users = await User.find({}, "-passwordHash");
+router.get('/users', protect, adminOnly, async (req, res) => {
+  const users = await User.find({}, '-passwordHash');
   res.json(users);
 });
 

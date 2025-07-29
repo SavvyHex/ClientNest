@@ -6,9 +6,10 @@ function Home() {
     <div style={styles.container}>
       <h1 style={styles.title}>Welcome to ClientNest</h1>
       <p style={styles.subtitle}>Your lightweight client portal</p>
-      
+
       <div style={styles.buttons}>
-        <Link to="/login" style={styles.button}>Login</Link>
+      <Link to="/login-client" style={styles.button}>Client Login</Link>
+      <Link to="/login-admin" style={styles.button}>Admin Login</Link>
         <Link to="/register" style={styles.button}>Register</Link>
       </div>
 
