@@ -1,19 +1,25 @@
 import express from "express";
 import User from "../models/User.js";
 import { protect, adminOnly } from "../middleware/authMiddleware.js";
-import { 
+import {
   getAdminNotifications,
   getAdminProjects,
   getAdminFiles,
   getAdminMessages,
-  acceptAdminRequest
-} from '../controllers/adminController.js';
+  acceptAdminRequest,
+  sendAdminFile,
+  sendAdminMessage,
+} from "../controllers/adminController.js";
+
+import multer from "multer";
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 const router = express.Router();
 
 // GET all users (admin only)
-router.get('/users', protect, adminOnly, async (req, res) => {
-  const users = await User.find({}, '-passwordHash');
+router.get("/users", protect, adminOnly, async (req, res) => {
+  const users = await User.find({}, "-passwordHash");
   res.json(users);
 });
 
@@ -35,18 +41,29 @@ router.put("/users/:id", protect, adminOnly, async (req, res) => {
 });
 
 // GET admin notifications
-router.get('/notifications', protect, adminOnly, getAdminNotifications);
+router.get("/notifications", protect, adminOnly, getAdminNotifications);
 
 // GET admin projects
-router.get('/projects', protect, adminOnly, getAdminProjects);
+router.get("/projects", protect, adminOnly, getAdminProjects);
 
 // GET admin files
-router.get('/files', protect, adminOnly, getAdminFiles);
+router.get("/files", protect, adminOnly, getAdminFiles);
+
+// POST admin files
+router.post("/files", protect, adminOnly, upload.single("file"), sendAdminFile);
 
 // GET admin messages
-router.get('/messages', protect, adminOnly, getAdminMessages);
+router.get("/messages", protect, adminOnly, getAdminMessages);
+
+// POST admin messages
+router.post("/messages", protect, adminOnly, sendAdminMessage);
 
 // Accept a client request (admin only)
-router.post('/accept-request/:notificationId', protect, adminOnly, acceptAdminRequest);
+router.post(
+  "/accept-request/:notificationId",
+  protect,
+  adminOnly,
+  acceptAdminRequest
+);
 
 export default router;

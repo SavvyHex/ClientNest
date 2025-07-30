@@ -2,8 +2,14 @@ import AdminRequest from '../models/AdminRequest.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import Project from '../models/Project.js';
-import File from '../models/File.js';           // ✅ ADD THIS
-import Message from '../models/Message.js';     // ✅ AND THIS
+import File from '../models/File.js';
+import Message from '../models/Message.js';
+
+import multer from 'multer';
+import path from 'path';
+
+// Set up Multer for file uploads
+const upload = multer({ dest: 'uploads/' });
 
 // Return all projects
 export const getAdminProjects = async (req, res) => {
@@ -84,5 +90,55 @@ export const acceptAdminRequest = async (req, res) => {
   } catch (err) {
     console.error('❌ acceptAdminRequest:', err.message);
     res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// Upload a file from admin
+export const sendAdminFile = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded.' });
+    }
+
+    const adminId = req.user.userId;
+    const { projectId } = req.body;
+
+    const newFile = await File.create({
+      name: req.file.originalname,
+      path: req.file.path,
+      url: `/uploads/${req.file.filename}`,
+      uploadedAt: new Date(),
+      uploadedBy: adminId,
+      project: projectId
+    });
+
+    res.status(201).json(newFile);
+  } catch (err) {
+    console.error("❌ Error uploading file:", err);
+    res.status(500).json({ message: 'Failed to upload file.' });
+  }
+};
+
+// Send a message from admin to client
+export const sendAdminMessage = async (req, res) => {
+  try {
+    const adminId = req.user.userId;
+    const { content, projectId } = req.body;
+
+    if (!content || !projectId) {
+      return res.status(400).json({ message: 'Content and projectId required.' });
+    }
+
+    const message = await Message.create({
+      content,
+      sender: adminId,
+      project: projectId,
+      createdAt: new Date()
+    });
+
+    res.status(201).json(message);
+  } catch (err) {
+    console.error('❌ sendAdminMessage:', err.message);
+    res.status(500).json({ message: 'Failed to send message.' });
   }
 };

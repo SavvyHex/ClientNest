@@ -5,7 +5,8 @@ import {
   requestAdmin,
   getRequestStatus,
   getClientMessages,
-  sendClientMessage
+  sendClientMessage,
+  getClientProject
 } from '../controllers/clientController.js';
 import { clientAuthMiddleware } from '../middleware/authMiddleware.js';
 import multer from 'multer';
@@ -32,5 +33,8 @@ router.get('/messages', clientAuthMiddleware, getClientMessages);
 
 // Send a new message
 router.post('/messages', clientAuthMiddleware, sendClientMessage);
+
+// Get the project
+router.get('/project', clientAuthMiddleware, getClientProject);
 
 export default router;

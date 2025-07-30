@@ -6,26 +6,32 @@ function AdminDashboard() {
   const [files, setFiles] = useState([]);
   const [messages, setMessages] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [newMessage, setNewMessage] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [selectedReceiverId, setSelectedReceiverId] = useState('');
 
   const goHome = () => {
     window.location.href = '/';
   };
 
-  // Move fetchAll here so it's accessible everywhere in the component
   const fetchAll = async () => {
     const token = localStorage.getItem('token');
     try {
-      const [projRes, fileRes, msgRes, notifRes] = await Promise.all([
+      const [projRes, fileRes, msgRes, notifRes, userRes] = await Promise.all([
         axios.get('http://localhost:5000/api/admin/projects', { headers: { Authorization: `Bearer ${token}` } }),
         axios.get('http://localhost:5000/api/admin/files', { headers: { Authorization: `Bearer ${token}` } }),
         axios.get('http://localhost:5000/api/admin/messages', { headers: { Authorization: `Bearer ${token}` } }),
         axios.get('http://localhost:5000/api/admin/notifications', { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get('http://localhost:5000/api/admin/users', { headers: { Authorization: `Bearer ${token}` } })
       ]);
       setProjects(projRes.data);
       setFiles(fileRes.data);
       setMessages(msgRes.data);
       setNotifications(notifRes.data);
+      setUsers(userRes.data);
     } catch (err) {
       if (err.response?.status === 401 || err.response?.status === 403) {
         localStorage.clear();
@@ -38,17 +44,55 @@ function AdminDashboard() {
 
   useEffect(() => {
     fetchAll();
-    // eslint-disable-next-line
   }, []);
+
+  const handleSendMessage = async () => {
+    const token = localStorage.getItem('token');
+    if (!newMessage || !selectedProjectId || !selectedReceiverId) return;
+
+    try {
+      await axios.post('http://localhost:5000/api/admin/messages', {
+        content: newMessage,
+        projectId: selectedProjectId,
+        receiverId: selectedReceiverId
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      setNewMessage('');
+      fetchAll();
+    } catch (err) {
+      alert("❌ Failed to send message");
+      console.error(err);
+    }
+  };
+
+  const handleFileUpload = async () => {
+    if (!selectedFile) return;
+    const token = localStorage.getItem('token');
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    await axios.post('http://localhost:5000/api/admin/files', formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    setSelectedFile(null);
+    fetchAll();
+  };
 
   return (
     <div style={styles.container}>
       <button onClick={goHome} style={styles.button}>Home</button>
       <h2 style={styles.title}>Admin Dashboard</h2>
+
       {loading ? (
         <p style={styles.subtitle}>Loading...</p>
       ) : (
         <>
+          {/* Notifications */}
           <section style={styles.section}>
             <h3 style={styles.sectionTitle}>Notifications</h3>
             {notifications.length === 0 ? (
@@ -61,24 +105,12 @@ function AdminDashboard() {
                     background: n.type === 'admin-request' ? '#fffbe6' : '#f5f5f5',
                     borderLeft: n.type === 'admin-request' ? '4px solid #ffc107' : '4px solid #007bff'
                   }}>
-                    <div style={{ fontWeight: 'bold', marginBottom: 4 }}>
-                      {n.type === 'admin-request' ? 'Client Request' : 'Notification'}
-                    </div>
+                    <div><strong>{n.type === 'admin-request' ? 'Client Request' : 'Notification'}</strong></div>
                     <div>{n.message}</div>
-                    <div style={{ fontSize: '0.9em', color: '#aaa', marginTop: 6 }}>
-                      {new Date(n.createdAt).toLocaleString()}
-                    </div>
+                    <div style={{ fontSize: '0.9em', color: '#aaa' }}>{new Date(n.createdAt).toLocaleString()}</div>
                     {n.type === 'admin-request' && !n.read && (
                       <button
-                        style={{
-                          marginTop: '0.5rem',
-                          background: '#28a745',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: '4px',
-                          padding: '0.5rem 1rem',
-                          cursor: 'pointer'
-                        }}
+                        style={styles.acceptButton}
                         onClick={async () => {
                           const token = localStorage.getItem('token');
                           await axios.post(
@@ -86,9 +118,8 @@ function AdminDashboard() {
                             {},
                             { headers: { Authorization: `Bearer ${token}` } }
                           );
-                          // Instead of window.location.reload(), refetch data:
                           setLoading(true);
-                          await fetchAll(); // Call your fetchAll function to reload projects/notifications
+                          await fetchAll();
                           setLoading(false);
                         }}
                       >
@@ -100,6 +131,8 @@ function AdminDashboard() {
               </div>
             )}
           </section>
+
+          {/* Projects */}
           <section style={styles.section}>
             <h3 style={styles.sectionTitle}>Projects</h3>
             <ul>
@@ -108,15 +141,20 @@ function AdminDashboard() {
               ) : (
                 projects.map(p => (
                   <li key={p._id}>
-                    <strong>{p.name}</strong> — {p.status} <br />
+                    <strong>{p.name}</strong> — {p.status}
+                    <br />
                     <span style={{ fontSize: '0.95em', color: '#666' }}>{p.description}</span>
                   </li>
                 ))
               )}
             </ul>
           </section>
+
+          {/* File Upload */}
           <section style={styles.section}>
-            <h3 style={styles.sectionTitle}>Files Uploaded by Clients</h3>
+            <h3 style={styles.sectionTitle}>Files</h3>
+            <input type="file" onChange={e => setSelectedFile(e.target.files[0])} />
+            <button onClick={handleFileUpload} style={styles.button}>Upload File</button>
             <ul>
               {files.length === 0 ? (
                 <li style={styles.subtitle}>No files uploaded.</li>
@@ -124,14 +162,52 @@ function AdminDashboard() {
                 files.map(f => (
                   <li key={f._id}>
                     <a href={`http://localhost:5000${f.url}`} target="_blank" rel="noopener noreferrer">{f.name}</a>
-                    {f.project && <span style={{ marginLeft: 8, color: '#888' }}>({f.project.name || f.project})</span>}
                   </li>
                 ))
               )}
             </ul>
           </section>
+
+          {/* Messages */}
           <section style={styles.section}>
-            <h3 style={styles.sectionTitle}>Recent Messages</h3>
+            <h3 style={styles.sectionTitle}>Messages</h3>
+            <label>Select Project:</label>
+            <select
+              value={selectedProjectId}
+              onChange={e => setSelectedProjectId(e.target.value)}
+              style={{ display: 'block', padding: '0.5rem', marginBottom: 8 }}
+            >
+              <option value="">-- Select a Project --</option>
+              {projects.map(p => (
+                <option key={p._id} value={p._id}>{p.name}</option>
+              ))}
+            </select>
+
+            <label>Select Receiver:</label>
+            <select
+              value={selectedReceiverId}
+              onChange={e => setSelectedReceiverId(e.target.value)}
+              style={{ display: 'block', padding: '0.5rem', marginBottom: 8 }}
+            >
+              <option value="">-- Select a User --</option>
+              {users.map(u => (
+                <option key={u._id} value={u._id}>{u.name || u.email}</option>
+              ))}
+            </select>
+
+            <textarea
+              value={newMessage}
+              onChange={e => setNewMessage(e.target.value)}
+              placeholder="Type your message here"
+              style={{ width: '100%', height: 80, marginBottom: 10 }}
+            />
+            <button
+              onClick={handleSendMessage}
+              style={styles.button}
+              disabled={!newMessage || !selectedProjectId || !selectedReceiverId}
+            >
+              Send Message
+            </button>
             <ul>
               {messages.length === 0 ? (
                 <li style={styles.subtitle}>No messages.</li>
@@ -147,6 +223,7 @@ function AdminDashboard() {
           </section>
         </>
       )}
+
       <footer style={styles.footer}>
         <p>&copy; {new Date().getFullYear()} ClientNest</p>
       </footer>
@@ -173,13 +250,22 @@ const styles = {
   },
   button: {
     display: 'inline-block',
-    margin: '0 1rem 2rem 0',
+    margin: '0.5rem',
     padding: '0.75rem 1.5rem',
     backgroundColor: '#007bff',
     color: '#fff',
     textDecoration: 'none',
     border: 'none',
     borderRadius: '5px',
+    cursor: 'pointer'
+  },
+  acceptButton: {
+    marginTop: '0.5rem',
+    background: '#28a745',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '4px',
+    padding: '0.5rem 1rem',
     cursor: 'pointer'
   },
   section: {
