@@ -8,6 +8,7 @@ function ClientDashboard() {
   const [uploading, setUploading] = useState(false);
   const [requestStatus, setRequestStatus] = useState(null); // 'none', 'pending', 'accepted', 'rejected'
   const [messageInput, setMessageInput] = useState('');
+  const [duplicateRequest, setDuplicateRequest] = useState(false);
 
   useEffect(() => {
     checkRequestStatus();
@@ -26,7 +27,7 @@ function ClientDashboard() {
       const res = await axios.get('http://localhost:5000/api/client/request-status', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setRequestStatus(res.data.status); // 'none', 'pending', 'accepted', 'rejected'
+      setRequestStatus(res.data.status);
     } catch (err) {
       setRequestStatus('none');
     }
@@ -40,7 +41,16 @@ function ClientDashboard() {
       });
       setRequestStatus('pending');
     } catch (err) {
-      alert('Failed to send request.');
+      if (
+        err.response &&
+        err.response.data &&
+        err.response.data.message === 'Request already sent or accepted.'
+      ) {
+        setDuplicateRequest(true);
+        setRequestStatus('pending');
+      } else {
+        alert('Failed to send request.');
+      }
     }
   };
 
@@ -131,18 +141,26 @@ function ClientDashboard() {
         Home
       </button>
       <h1>Welcome Client</h1>
+
       {requestStatus === 'none' && (
         <div>
           <p>You have not requested to work with an admin yet.</p>
           <button onClick={handleRequestAdmin}>Request to Work with Admin</button>
         </div>
       )}
+
       {requestStatus === 'pending' && (
-        <p>Your request to work with an admin is pending approval.</p>
+        <p>
+          {duplicateRequest
+            ? 'You have already requested to work with an admin.'
+            : 'Your request to work with an admin is pending approval.'}
+        </p>
       )}
+
       {requestStatus === 'rejected' && (
         <p>Your request was rejected. Please contact support or try again later.</p>
       )}
+
       {requestStatus === 'accepted' && (
         <>
           <form onSubmit={handleUpload} style={{ marginBottom: '2rem' }}>
@@ -151,6 +169,7 @@ function ClientDashboard() {
               {uploading ? 'Uploading...' : 'Upload File'}
             </button>
           </form>
+
           <h2>Your Uploaded Files</h2>
           <ul>
             {files.map((file) => (
@@ -165,6 +184,7 @@ function ClientDashboard() {
               </li>
             ))}
           </ul>
+
           <h2>Messages</h2>
           <form onSubmit={handleSendMessage} style={{ marginBottom: '1rem' }}>
             <input

@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import mongoose from 'mongoose';
 import AdminRequest from '../models/AdminRequest.js';
 import Notification from '../models/Notification.js';
 
@@ -37,25 +38,43 @@ export const uploadClientFile = (req, res) => {
 
 // POST /api/client/request-admin
 export const requestAdmin = async (req, res) => {
-  const userId = req.user.userId;
-  const userName = req.user.name || req.user.email || 'Client';
+  try {
+    console.log("🛠 requestAdmin route hit");
 
-  // Prevent duplicate pending/accepted requests
-  const existing = await AdminRequest.findOne({ user: userId, status: { $in: ['pending', 'accepted'] } });
-  if (existing) {
-    return res.status(400).json({ message: 'Request already sent or accepted.' });
+    const userId = req.user._id || req.user.userId;
+    const userName = req.user.name || req.user.email || 'Client';
+    console.log("🔎 userId:", userId);
+
+    // Check for existing request
+    const existing = await AdminRequest.findOne({
+      user: userId,
+      status: { $in: ['pending', 'accepted'] },
+    });
+
+    if (existing) {
+      console.log("⚠️ Already exists");
+      return res.status(400).json({ message: 'Request already sent or accepted.', status: existing.status });
+    }
+
+    // Create admin request
+    const newRequest = await AdminRequest.create({ user: userId });
+    console.log("✅ Admin request created:", newRequest);
+
+    // Create admin notification
+    const notif = await Notification.create({
+      type: 'admin-request',
+      message: `${userName} requested to work with an admin.`,
+      read: false
+    });
+
+    console.log("📬 Notification created:", notif);
+
+    res.json({ message: 'Request sent.', status: 'pending' });
+
+  } catch (err) {
+    console.error("❌ Error in requestAdmin:", err.message);
+    res.status(500).json({ message: 'Server error' });
   }
-
-  // Create admin request
-  await AdminRequest.create({ user: userId });
-
-  // Create notification for admin
-  await Notification.create({
-    type: 'admin-request',
-    message: `${userName} requested to work with an admin.`
-  });
-
-  res.json({ message: 'Request sent.', status: 'pending' });
 };
 
 // GET /api/client/request-status
