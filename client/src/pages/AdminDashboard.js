@@ -12,38 +12,33 @@ function AdminDashboard() {
     window.location.href = '/';
   };
 
-  useEffect(() => {
+  // Move fetchAll here so it's accessible everywhere in the component
+  const fetchAll = async () => {
     const token = localStorage.getItem('token');
-    const user = JSON.parse(localStorage.getItem('user'));
-    if (!(token && user?.role === 'admin')) {
-      localStorage.clear();
-      window.location.href = '/';
-      return;
-    }
-
-    const fetchAll = async () => {
-      try {
-        const [projRes, fileRes, msgRes, notifRes] = await Promise.all([
-          axios.get('http://localhost:5000/api/admin/projects', { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get('http://localhost:5000/api/admin/files', { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get('http://localhost:5000/api/admin/messages', { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get('http://localhost:5000/api/admin/notifications', { headers: { Authorization: `Bearer ${token}` } }),
-        ]);
-        setProjects(projRes.data);
-        setFiles(fileRes.data);
-        setMessages(msgRes.data);
-        setNotifications(notifRes.data);
-      } catch (err) {
-        if (err.response?.status === 401 || err.response?.status === 403) {
-          localStorage.clear();
-          window.location.href = '/';
-        }
-      } finally {
-        setLoading(false);
+    try {
+      const [projRes, fileRes, msgRes, notifRes] = await Promise.all([
+        axios.get('http://localhost:5000/api/admin/projects', { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get('http://localhost:5000/api/admin/files', { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get('http://localhost:5000/api/admin/messages', { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get('http://localhost:5000/api/admin/notifications', { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      setProjects(projRes.data);
+      setFiles(fileRes.data);
+      setMessages(msgRes.data);
+      setNotifications(notifRes.data);
+    } catch (err) {
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        localStorage.clear();
+        window.location.href = '/';
       }
-    };
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchAll();
+    // eslint-disable-next-line
   }, []);
 
   return (
@@ -56,17 +51,54 @@ function AdminDashboard() {
         <>
           <section style={styles.section}>
             <h3 style={styles.sectionTitle}>Notifications</h3>
-            <ul>
-              {notifications.length === 0 ? (
-                <li style={styles.subtitle}>No notifications.</li>
-              ) : (
-                notifications.map(n => (
-                  <li key={n._id} style={{ color: n.read ? '#666' : '#007bff' }}>
-                    {n.message} <span style={{ fontSize: '0.9em', color: '#aaa' }}>{new Date(n.createdAt).toLocaleString()}</span>
-                  </li>
-                ))
-              )}
-            </ul>
+            {notifications.length === 0 ? (
+              <div style={styles.subtitle}>No notifications.</div>
+            ) : (
+              <div style={styles.notificationGrid}>
+                {notifications.map(n => (
+                  <div key={n._id} style={{
+                    ...styles.notificationCard,
+                    background: n.type === 'admin-request' ? '#fffbe6' : '#f5f5f5',
+                    borderLeft: n.type === 'admin-request' ? '4px solid #ffc107' : '4px solid #007bff'
+                  }}>
+                    <div style={{ fontWeight: 'bold', marginBottom: 4 }}>
+                      {n.type === 'admin-request' ? 'Client Request' : 'Notification'}
+                    </div>
+                    <div>{n.message}</div>
+                    <div style={{ fontSize: '0.9em', color: '#aaa', marginTop: 6 }}>
+                      {new Date(n.createdAt).toLocaleString()}
+                    </div>
+                    {n.type === 'admin-request' && !n.read && (
+                      <button
+                        style={{
+                          marginTop: '0.5rem',
+                          background: '#28a745',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '4px',
+                          padding: '0.5rem 1rem',
+                          cursor: 'pointer'
+                        }}
+                        onClick={async () => {
+                          const token = localStorage.getItem('token');
+                          await axios.post(
+                            `http://localhost:5000/api/admin/accept-request/${n._id}`,
+                            {},
+                            { headers: { Authorization: `Bearer ${token}` } }
+                          );
+                          // Instead of window.location.reload(), refetch data:
+                          setLoading(true);
+                          await fetchAll(); // Call your fetchAll function to reload projects/notifications
+                          setLoading(false);
+                        }}
+                      >
+                        Accept
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
           <section style={styles.section}>
             <h3 style={styles.sectionTitle}>Projects</h3>
@@ -167,7 +199,22 @@ const styles = {
     marginTop: '4rem',
     color: '#999',
     fontSize: '0.9rem'
-  }
+  },
+  notificationGrid: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '1rem',
+  },
+  notificationCard: {
+    flex: '1 1 250px',
+    minWidth: 220,
+    background: '#f5f5f5',
+    borderRadius: '8px',
+    padding: '1rem',
+    marginBottom: '1rem',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+    borderLeft: '4px solid #007bff',
+  },
 };
 
 export default AdminDashboard;

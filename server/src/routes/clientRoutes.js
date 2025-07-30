@@ -1,5 +1,12 @@
 import express from 'express';
-import { getClientFiles, uploadClientFile } from '../controllers/clientController.js';
+import {
+  getClientFiles,
+  uploadClientFile,
+  requestAdmin,
+  getRequestStatus,
+  getClientMessages,
+  sendClientMessage
+} from '../controllers/clientController.js';
 import { clientAuthMiddleware } from '../middleware/authMiddleware.js';
 import multer from 'multer';
 
@@ -13,5 +20,17 @@ router.get('/files', clientAuthMiddleware, getClientFiles);
 
 // Upload a new file (page or invoice)
 router.post('/upload', clientAuthMiddleware, upload.single('file'), uploadClientFile);
+
+// Request to work with an admin
+router.post('/request-admin', clientAuthMiddleware, requestAdmin);
+
+// Get the status of the admin request
+router.get('/request-status', clientAuthMiddleware, getRequestStatus);
+
+// Get all messages for the client
+router.get('/messages', clientAuthMiddleware, getClientMessages);
+
+// Send a new message
+router.post('/messages', clientAuthMiddleware, sendClientMessage);
 
 export default router;
