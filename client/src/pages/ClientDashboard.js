@@ -6,7 +6,7 @@ function ClientDashboard() {
   const [messages, setMessages] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
-  const [requestStatus, setRequestStatus] = useState(null); // 'none', 'pending', 'accepted', 'rejected'
+  const [requestStatus, setRequestStatus] = useState(null);
   const [messageInput, setMessageInput] = useState('');
   const [duplicateRequest, setDuplicateRequest] = useState(false);
 
@@ -140,6 +140,7 @@ function ClientDashboard() {
       }}>
         Home
       </button>
+
       <h1>Welcome Client</h1>
 
       {requestStatus === 'none' && (
@@ -186,16 +187,44 @@ function ClientDashboard() {
           </ul>
 
           <h2>Messages</h2>
-          <form onSubmit={handleSendMessage} style={{ marginBottom: '1rem' }}>
-            <input
-              type="text"
+          <form
+            onSubmit={handleSendMessage}
+            style={{
+              display: 'flex',
+              gap: '0.5rem',
+              alignItems: 'stretch',
+              marginBottom: '1rem',
+            }}
+          >
+            <textarea
               value={messageInput}
-              onChange={e => setMessageInput(e.target.value)}
+              onChange={(e) => setMessageInput(e.target.value)}
               placeholder="Type your message"
-              style={{ width: '60%', marginRight: '1rem' }}
+              rows={3}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                borderRadius: '8px',
+                border: '1px solid #ccc',
+                fontSize: '1rem',
+                resize: 'none',
+              }}
             />
-            <button type="submit">Send</button>
+            <button
+              type="submit"
+              style={{
+                padding: '0.75rem 1.5rem',
+                backgroundColor: '#007bff',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+              }}
+            >
+              Send
+            </button>
           </form>
+
           <ul>
             {messages.map((msg) => (
               <li key={msg._id}>

@@ -6,12 +6,10 @@ function AdminDashboard() {
   const [files, setFiles] = useState([]);
   const [messages, setMessages] = useState([]);
   const [notifications, setNotifications] = useState([]);
-  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newMessage, setNewMessage] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
   const [selectedProjectId, setSelectedProjectId] = useState('');
-  const [selectedReceiverId, setSelectedReceiverId] = useState('');
 
   const goHome = () => {
     window.location.href = '/';
@@ -20,18 +18,16 @@ function AdminDashboard() {
   const fetchAll = async () => {
     const token = localStorage.getItem('token');
     try {
-      const [projRes, fileRes, msgRes, notifRes, userRes] = await Promise.all([
+      const [projRes, fileRes, msgRes, notifRes] = await Promise.all([
         axios.get('http://localhost:5000/api/admin/projects', { headers: { Authorization: `Bearer ${token}` } }),
         axios.get('http://localhost:5000/api/admin/files', { headers: { Authorization: `Bearer ${token}` } }),
         axios.get('http://localhost:5000/api/admin/messages', { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get('http://localhost:5000/api/admin/notifications', { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get('http://localhost:5000/api/admin/users', { headers: { Authorization: `Bearer ${token}` } })
+        axios.get('http://localhost:5000/api/admin/notifications', { headers: { Authorization: `Bearer ${token}` } })
       ]);
       setProjects(projRes.data);
       setFiles(fileRes.data);
       setMessages(msgRes.data);
       setNotifications(notifRes.data);
-      setUsers(userRes.data);
     } catch (err) {
       if (err.response?.status === 401 || err.response?.status === 403) {
         localStorage.clear();
@@ -48,13 +44,12 @@ function AdminDashboard() {
 
   const handleSendMessage = async () => {
     const token = localStorage.getItem('token');
-    if (!newMessage || !selectedProjectId || !selectedReceiverId) return;
+    if (!newMessage || !selectedProjectId) return;
 
     try {
       await axios.post('http://localhost:5000/api/admin/messages', {
         content: newMessage,
-        projectId: selectedProjectId,
-        receiverId: selectedReceiverId
+        projectId: selectedProjectId
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -183,18 +178,6 @@ function AdminDashboard() {
               ))}
             </select>
 
-            <label>Select Receiver:</label>
-            <select
-              value={selectedReceiverId}
-              onChange={e => setSelectedReceiverId(e.target.value)}
-              style={{ display: 'block', padding: '0.5rem', marginBottom: 8 }}
-            >
-              <option value="">-- Select a User --</option>
-              {users.map(u => (
-                <option key={u._id} value={u._id}>{u.name || u.email}</option>
-              ))}
-            </select>
-
             <textarea
               value={newMessage}
               onChange={e => setNewMessage(e.target.value)}
@@ -204,7 +187,7 @@ function AdminDashboard() {
             <button
               onClick={handleSendMessage}
               style={styles.button}
-              disabled={!newMessage || !selectedProjectId || !selectedReceiverId}
+              disabled={!newMessage || !selectedProjectId}
             >
               Send Message
             </button>
